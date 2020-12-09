@@ -9,8 +9,14 @@ import (
     "os"
     "os/signal"
     "syscall"
+    "encoding/json"
 )
 
+type Product struct {
+    Name string `json: "name"`
+    Cost int`json: "cost"`
+    Quantity int`json: "quantity"`
+}
 
 func main() {
     log.Printf("main: Started")
@@ -18,7 +24,7 @@ func main() {
 
     api := http.Server{
         Addr: "localhost:8111",
-        Handler: http.HandlerFunc(Echo),
+        Handler: http.HandlerFunc(ListProducts),
         ReadTimeout: 5 * time.Second,
         WriteTimeout: 5 * time.Second,
     }
@@ -53,6 +59,7 @@ func main() {
         }
     }
     /*
+    //h := http.HandlerFunc(Echo)
     h := http.HandlerFunc(Echo)
     log.Println("Listten on localhost:8111")
     if err := http.ListenAndServe("localhost:8111", h); err != nil {
@@ -69,5 +76,29 @@ func Echo(w http.ResponseWriter, r *http.Request) {
     time.Sleep(3*time.Second)
     fmt.Fprintln(w,"You asked %s ", r.Method, r.URL.Path )
     fmt.Println("ending ", id)
+}
+
+
+func ListProducts(w http.ResponseWriter, r *http.Request) {
+    list := []Product{
+        { Name: "comic books",Cost: 100, Quantity: 10,},
+        { Name: "it books",Cost: 500, Quantity: 100},
+    }
+
+
+    data, err := json.Marshal(list)
+
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        log.Println("err marshaling  ", err)
+        return
+    } else {
+        w.Header().Set("Content-Type","application/json; charset=utf8")
+        w.WriteHeader(http.StatusOK)
+    }
+
+    if _, err := w.Write(data); err != nil {
+        log.Println("err writing ", err)
+    }
 }
 
