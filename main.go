@@ -8,9 +8,11 @@ import (
     "context"
     "math/rand"
     "os"
+    "flag"
     "os/signal"
     "syscall"
     "encoding/json"
+    "github.com/yaowenqiang/garagesale/schema"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -33,6 +35,25 @@ func main() {
     }
 
     defer db.Close()
+
+
+    flag.Parse()
+    switch flag.Arg(0) {
+    case "migrate":
+        if err := schema.Migrate(db); err != nil {
+            log.Fatal("applying migrations ", err)
+        }
+        log.Println("Migration complete")
+        return
+    case "seed":
+        if err := schema.Seed(db); err != nil {
+            log.Fatal("applying seed data ", err)
+        }
+        log.Println("Seeding complete")
+        return
+    }
+
+
 
     api := http.Server{
         Addr: "localhost:8111",
