@@ -11,20 +11,22 @@ import (
 
 type Product struct {
     Db *sqlx.DB
+    Log *log.Logger
 }
 
 func (p *Product) List(w http.ResponseWriter, r *http.Request) {
+    p.Log.Println("SALES")
     list, err := product.List(p.Db);
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
-        log.Println("error query! db")
+        p.Log.Println("error query! db")
     }
 
     data, err := json.Marshal(list)
 
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
-        log.Println("err marshaling  ", err)
+        p.Log.Println("err marshaling  ", err)
         return
     } else {
         w.Header().Set("Content-Type","application/json; charset=utf8")
@@ -32,7 +34,7 @@ func (p *Product) List(w http.ResponseWriter, r *http.Request) {
     }
 
     if _, err := w.Write(data); err != nil {
-        log.Println("err writing ", err)
+        p.Log.Println("err writing ", err)
     }
 
 }
