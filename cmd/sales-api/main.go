@@ -5,17 +5,22 @@ import (
     "log"
     "time"
     "context"
-    "math/rand"
     "os"
     "os/signal"
     "syscall"
+    "github.com/pkg/errors"
     "github.com/yaowenqiang/garagesale/internal/platform/conf"
     "github.com/yaowenqiang/garagesale/cmd/sales-api/internal/handlers"
     "github.com/yaowenqiang/garagesale/internal/platform/database"
 )
 
-
 func main() {
+    if err := run(); err != nil {
+        log.Fatal(err)
+    }
+}
+
+func run() error {
     log.Printf("main: Started")
     defer log.Printf("main: Completed")
 
@@ -43,17 +48,17 @@ func main() {
         if err == conf.ErrHelpWanted {
             usage, err := conf.Usage("SALES", &cfg)
             if err != nil {
-                log.Fatalf("error: generating config usage: %s", err)
+                return errors.Wrap(err, "generating config usage")
             }
             fmt.Println(usage)
-            return
+            return nil
         }
-        log.Fatalf("error: parsing config: %s", err)
+        return errors.Wrap(err, "parsing config")
     }
 
     out, err := conf.String(&cfg)
     if err != nil {
-        log.Fatalf("error : generating config for output : %s", err)
+        return errors.Wrap(err, "enerating config for output")
     }
     log.Printf("main: Config: \n%v\n", out)
 
@@ -66,7 +71,7 @@ func main() {
     })
 
     if err != nil {
-        log.Fatalf("error: connecting to db: %s", err)
+        return errors.Wrap(err, "connecting to db")
     }
 
     defer db.Close()
@@ -91,7 +96,7 @@ func main() {
 
     select {
     case err := <- serverErrors:
-        log.Fatalf("error: Listening and Serving %s", err)
+        return errors.Wrap(err, "Listening and Serving")
     case <-shutdown:
         log.Println("main: Start shutdown")
 
@@ -105,25 +110,9 @@ func main() {
         }
 
         if err != nil {
-            log.Printf("main: could not stop server gracefully %v", err)
+            return errors.Wrap(err, "graceful shutdown")
         }
     }
-    /*
-    //h := http.HandlerFunc(Echo)
-    h := http.HandlerFunc(Echo)
-    log.Println("Listten on localhost:8111")
-    if err := http.ListenAndServe("localhost:8111", h); err != nil {
-        log.Fatal(err)
-    }
-    */
+    return nil
 }
 
-// the echo method
-
-func Echo(w http.ResponseWriter, r *http.Request) {
-    id := rand.Intn(300)
-    fmt.Println("starting ", id)
-    time.Sleep(3*time.Second)
-    fmt.Fprintln(w,"You asked %s ", r.Method, r.URL.Path )
-    fmt.Println("ending ", id)
-}

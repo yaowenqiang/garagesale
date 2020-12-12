@@ -4,6 +4,7 @@ import (
     "log"
     "os"
     "fmt"
+    "github.com/pkg/errors"
     "github.com/yaowenqiang/garagesale/internal/schema"
     "github.com/yaowenqiang/garagesale/internal/platform/database"
     "github.com/yaowenqiang/garagesale/internal/platform/conf"
@@ -12,8 +13,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
-
 func main() {
+    if err := run(); err != nil {
+        log.Fatal(err)
+    }
+}
+
+func run() error {
 
 	var cfg struct {
 		DB struct {
@@ -29,12 +35,12 @@ func main() {
 		if err == conf.ErrHelpWanted {
 			usage, err := conf.Usage("SALES", &cfg)
 			if err != nil {
-				log.Fatalf("error : generating config usage : %v", err)
+				errors.Wrap(err, "generating config usage")
 			}
 			fmt.Println(usage)
-			return
+			return nil
 		}
-		log.Fatalf("error: parsing config: %s", err)
+		errors.Wrap(err, "parsing config")
 	}
 
     log.Printf("main: Started")
@@ -49,7 +55,7 @@ func main() {
     })
 
     if err != nil {
-        log.Fatalf("error: connecting to db: %s", err)
+        errors.Wrap(err, "connecting to db")
     }
 
     defer db.Close()
@@ -57,18 +63,18 @@ func main() {
     switch cfg.Args.Num(0) {
     case "migrate":
         if err := schema.Migrate(db); err != nil {
-            log.Fatal("applying migrations ", err)
+            errors.Wrap(err, "applying migrations")
         }
         log.Println("Migration complete")
-        return
+        return nil
     case "seed":
         if err := schema.Seed(db); err != nil {
-            log.Fatal("applying seed data ", err)
+            errors.Wrap(err, "applying seed data")
         }
         log.Println("Seeding complete")
-        return
+        return nil
     }
-
+    return nil
 }
 
 
