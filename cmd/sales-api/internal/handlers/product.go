@@ -6,6 +6,7 @@ import (
     "net/http"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/go-chi/chi"
     "github.com/yaowenqiang/garagesale/internal/product"
 )
 
@@ -23,6 +24,33 @@ func (p *Product) List(w http.ResponseWriter, r *http.Request) {
     }
 
     data, err := json.Marshal(list)
+
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        p.Log.Println("err marshaling  ", err)
+        return
+    } else {
+        w.Header().Set("Content-Type","application/json; charset=utf8")
+        w.WriteHeader(http.StatusOK)
+    }
+
+    if _, err := w.Write(data); err != nil {
+        p.Log.Println("err writing ", err)
+    }
+
+}
+
+//Retrieve single product
+func (p *Product) Retrieve(w http.ResponseWriter, r *http.Request) {
+    p.Log.Println("SALES")
+    id := chi.URLParam(r, "id")
+    prod, err := product.Retrieve(p.Db, id)
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        p.Log.Println("error query! db")
+    }
+
+    data, err := json.Marshal(prod)
 
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
