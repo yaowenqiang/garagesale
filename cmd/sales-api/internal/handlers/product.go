@@ -16,56 +16,40 @@ type Product struct {
     Log *log.Logger
 }
 
-func (p *Product) List(w http.ResponseWriter, r *http.Request) {
+func (p *Product) List(w http.ResponseWriter, r *http.Request) error {
     p.Log.Println("SALES")
     list, err := product.List(p.Db)
     if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        p.Log.Println("error query! db")
+        return err
     }
 
-    if err:= web.Respond(w, list, http.StatusOK); err != nil {
-        p.Log.Println("error responding", err)
-        return
-    }
+    return  web.Respond(w, list, http.StatusOK)
 
 }
 
 //Retrieve single product
-func (p *Product) Retrieve(w http.ResponseWriter, r *http.Request) {
+func (p *Product) Retrieve(w http.ResponseWriter, r *http.Request) error {
     p.Log.Println("SALES")
     id := chi.URLParam(r, "id")
     prod, err := product.Retrieve(p.Db, id)
     if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        p.Log.Println("error query! db")
+        return err
     }
 
-    if err:= web.Respond(w, prod, http.StatusOK); err != nil {
-        p.Log.Println("error responding", err)
-        return
-    }
+    return  web.Respond(w, prod, http.StatusOK)
 
 }
 
-func (p *Product) Create(w http.ResponseWriter, r *http.Request) {
+func (p *Product) Create(w http.ResponseWriter, r *http.Request)  error {
     var np product.NewProduct
     if err := web.Decode(r, &np); err != nil {
-        w.WriteHeader(http.StatusBadRequest)
-        p.Log.Println(err)
-        return
+        return err
     }
 
     prod, err := product.Create(p.Db, np, time.Now())
     if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        p.Log.Println("error creating product", err)
+        return err
     }
 
-    if err := web.Respond(w, prod, http.StatusCreated); err != nil {
-        p.Log.Println("error responding", err)
-        return
-    }
-
-
+    return  web.Respond(w, prod, http.StatusCreated)
 }
