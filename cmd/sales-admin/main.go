@@ -2,29 +2,51 @@ package main
 import (
     "net/url"
     "log"
-    "time"
-    "flag"
+    "os"
+    "fmt"
     "github.com/yaowenqiang/garagesale/internal/schema"
     "github.com/yaowenqiang/garagesale/internal/platform/database"
+    "github.com/yaowenqiang/garagesale/internal/platform/conf"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-type Product struct {
-    ID string `db:"product_id" json: "id"`
-    Name string `db:"name" json: "name"`
-    Cost int`db:"cost" json: "cost"`
-    Quantity int`db:"quantity" json: "quantity"`
-    DateCreated time.Time `db:"date_created" json: "date_created"`
-    DateUpdated time.Time `db:"date_updated" json: "date_updated"`
-}
 
 func main() {
+
+	var cfg struct {
+		DB struct {
+			User       string `conf:"default:postgres"`
+			Password   string `conf:"default:postgres,noprint"`
+			Host       string `conf:"default:localhost"`
+			Name       string `conf:"default:postgres"`
+			DisableTLS bool   `conf:"default:false"`
+		}
+        Args conf.Args
+	}
+	if err := conf.Parse(os.Args[1:], "SALES", &cfg); err != nil {
+		if err == conf.ErrHelpWanted {
+			usage, err := conf.Usage("SALES", &cfg)
+			if err != nil {
+				log.Fatalf("error : generating config usage : %v", err)
+			}
+			fmt.Println(usage)
+			return
+		}
+		log.Fatalf("error: parsing config: %s", err)
+	}
+
     log.Printf("main: Started")
     defer log.Printf("main: Completed")
 
-    db, err := database.Open()
+    db, err := database.Open(database.Config{
+        User: cfg.DB.User,
+        Password: cfg.DB.Password,
+        Host: cfg.DB.Host,
+        Name: cfg.DB.Name,
+        DisableTLS: cfg.DB.DisableTLS,
+    })
 
     if err != nil {
         log.Fatalf("error: connecting to db: %s", err)
@@ -32,8 +54,7 @@ func main() {
 
     defer db.Close()
 
-    flag.Parse()
-    switch flag.Arg(0) {
+    switch cfg.Args.Num(0) {
     case "migrate":
         if err := schema.Migrate(db); err != nil {
             log.Fatal("applying migrations ", err)

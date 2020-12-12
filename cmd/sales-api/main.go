@@ -9,25 +9,61 @@ import (
     "os"
     "os/signal"
     "syscall"
-    "encoding/json"
-    "github.com/yaowenqiang/garagesale/internal/platform/database"
+    "github.com/yaowenqiang/garagesale/internal/platform/conf"
     "github.com/yaowenqiang/garagesale/cmd/sales-api/internal/handlers"
+    "github.com/yaowenqiang/garagesale/internal/platform/database"
 )
 
-type Product struct {
-    ID string `db:"product_id" json: "id"`
-    Name string `db:"name" json: "name"`
-    Cost int`db:"cost" json: "cost"`
-    Quantity int`db:"quantity" json: "quantity"`
-    DateCreated time.Time `db:"date_created" json: "date_created"`
-    DateUpdated time.Time `db:"date_updated" json: "date_updated"`
-}
 
 func main() {
     log.Printf("main: Started")
     defer log.Printf("main: Completed")
 
-    db, err := database.Open()
+
+    var cfg struct {
+		Web struct {
+			Address         string        `conf:"default:localhost:8000"`
+			ReadTimeout     time.Duration `conf:"default:5s"`
+			WriteTimeout    time.Duration `conf:"default:5s"`
+			ShutdownTimeout time.Duration `conf:"default:5s"`
+		}
+        DB struct {
+            User string `conf:"default:postgres"`
+            Password string `conf:"default:postgres,noprint"`
+            Host string `conf:"default:localhost"`
+            Name string `conf:"default:postgres"`
+            DisableTLS bool `conf:"default:false"`
+        }
+    }
+
+
+    //parse configuration
+
+    if err := conf.Parse(os.Args[1:], "sales", &cfg); err != nil {
+        if err == conf.ErrHelpWanted {
+            usage, err := conf.Usage("SALES", &cfg)
+            if err != nil {
+                log.Fatalf("error: generating config usage: %s", err)
+            }
+            fmt.Println(usage)
+            return
+        }
+        log.Fatalf("error: parsing config: %s", err)
+    }
+
+    out, err := conf.String(&cfg)
+    if err != nil {
+        log.Fatalf("error : generating config for output : %s", err)
+    }
+    log.Printf("main: Config: \n%v\n", out)
+
+    db, err := database.Open(database.Config{
+        Host: cfg.DB.Host,
+        User: cfg.DB.User,
+        Name: cfg.DB.Name,
+        Password: cfg.DB.Password,
+        DisableTLS: cfg.DB.DisableTLS,
+    })
 
     if err != nil {
         log.Fatalf("error: connecting to db: %s", err)
@@ -38,10 +74,10 @@ func main() {
     ps := handlers.Product{Db: db}
 
     api := http.Server{
-        Addr: "localhost:8111",
+        Addr: cfg.Web.Address,
         Handler: http.HandlerFunc(ps.List),
-        ReadTimeout: 5 * time.Second,
-        WriteTimeout: 5 * time.Second,
+        ReadTimeout: cfg.Web.ReadTimeout,
+        WriteTimeout: cfg.Web.WriteTimeout,
     }
     serverErrors := make(chan error, 1)
 
@@ -59,13 +95,12 @@ func main() {
     case <-shutdown:
         log.Println("main: Start shutdown")
 
-        const timeout = 5 * time.Second
-        ctx, cancel := context.WithTimeout(context.Background(), timeout)
+        ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)
         defer cancel()
 
         err := api.Shutdown(ctx)
         if err != nil {
-            log.Printf("main: Graceful shutdown did not complete in %v : %v", timeout, err)
+            log.Printf("main: Graceful shutdown did not complete in %v : %v", cfg.Web.ShutdownTimeout, err)
             err = api.Close()
         }
 
@@ -91,28 +126,4 @@ func Echo(w http.ResponseWriter, r *http.Request) {
     time.Sleep(3*time.Second)
     fmt.Fprintln(w,"You asked %s ", r.Method, r.URL.Path )
     fmt.Println("ending ", id)
-}
-
-
-func ListProducts(w http.ResponseWriter, r *http.Request) {
-    list := []Product{
-        { Name: "comic books",Cost: 100, Quantity: 10,},
-        { Name: "it books",Cost: 500, Quantity: 100},
-    }
-
-
-    data, err := json.Marshal(list)
-
-    if err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        log.Println("err marshaling  ", err)
-        return
-    } else {
-        w.Header().Set("Content-Type","application/json; charset=utf8")
-        w.WriteHeader(http.StatusOK)
-    }
-
-    if _, err := w.Write(data); err != nil {
-        log.Println("err writing ", err)
-    }
 }
