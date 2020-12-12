@@ -3,6 +3,7 @@ package handlers
 import (
     "encoding/json"
     "log"
+    "time"
     "net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -17,7 +18,7 @@ type Product struct {
 
 func (p *Product) List(w http.ResponseWriter, r *http.Request) {
     p.Log.Println("SALES")
-    list, err := product.List(p.Db);
+    list, err := product.List(p.Db)
     if err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         p.Log.Println("error query! db")
@@ -64,5 +65,37 @@ func (p *Product) Retrieve(w http.ResponseWriter, r *http.Request) {
     if _, err := w.Write(data); err != nil {
         p.Log.Println("err writing ", err)
     }
+
+}
+
+func (p *Product) Create(w http.ResponseWriter, r *http.Request) {
+    var np product.NewProduct
+    if err := json.NewDecoder(r.Body).Decode(&np); err != nil {
+        w.WriteHeader(http.StatusBadRequest)
+        p.Log.Println(err)
+        return
+    }
+
+    prod, err := product.Create(p.Db, np, time.Now())
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        p.Log.Println("error creating product", err)
+    }
+
+    data, err := json.Marshal(prod)
+
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        p.Log.Println("err marshaling  ", err)
+        return
+    } else {
+        w.Header().Set("Content-Type","application/json; charset=utf8")
+        w.WriteHeader(http.StatusCreated)
+    }
+
+    if _, err := w.Write(data); err != nil {
+        p.Log.Println("err writing ", err)
+    }
+
 
 }
