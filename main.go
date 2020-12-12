@@ -19,9 +19,12 @@ import (
 )
 
 type Product struct {
-    Name string `json: "name"`
-    Cost int`json: "cost"`
-    Quantity int`json: "quantity"`
+    ID string `db:"product_id" json: "id"`
+    Name string `db:"name" json: "name"`
+    Cost int`db:"cost" json: "cost"`
+    Quantity int`db:"quantity" json: "quantity"`
+    DateCreated time.Time `db:"date_created" json: "date_created"`
+    DateUpdated time.Time `db:"date_updated" json: "date_updated"`
 }
 
 func main() {
@@ -54,10 +57,12 @@ func main() {
     }
 
 
+    ps := ProductService{db: db}
+
 
     api := http.Server{
         Addr: "localhost:8111",
-        Handler: http.HandlerFunc(ListProducts),
+        Handler: http.HandlerFunc(ps.List),
         ReadTimeout: 5 * time.Second,
         WriteTimeout: 5 * time.Second,
     }
@@ -149,5 +154,36 @@ func openDB() (*sqlx.DB, error) {
     }
 
     return sqlx.Open("postgres", u.String())
+}
+
+
+type ProductService struct {
+    db *sqlx.DB
+}
+
+
+func (p *ProductService) List(w http.ResponseWriter, r *http.Request) {
+    const q = "SELECT name, cost, quantity, date_updated, date_created  FROM products";
+    list := []Product{}
+    if err := p.db.Select(&list, q); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        log.Println("error query! db")
+    }
+
+    data, err := json.Marshal(list)
+
+    if err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        log.Println("err marshaling  ", err)
+        return
+    } else {
+        w.Header().Set("Content-Type","application/json; charset=utf8")
+        w.WriteHeader(http.StatusOK)
+    }
+
+    if _, err := w.Write(data); err != nil {
+        log.Println("err writing ", err)
+    }
+
 }
 
