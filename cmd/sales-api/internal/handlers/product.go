@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
     "github.com/yaowenqiang/garagesale/internal/product"
     "github.com/yaowenqiang/garagesale/internal/platform/web"
 )
@@ -33,7 +34,15 @@ func (p *Product) Retrieve(w http.ResponseWriter, r *http.Request) error {
     id := chi.URLParam(r, "id")
     prod, err := product.Retrieve(p.Db, id)
     if err != nil {
-        return err
+        switch err {
+        case product.ErrNotFound:
+            return web.NewRequestError(err, http.StatusNotFound)
+        case product.ErrInvalidID:
+            return web.NewRequestError(err, http.StatusBadRequest)
+        default:
+            return errors.Wrapf(err, "Looking for product %q", id)
+        }
+
     }
 
     return  web.Respond(w, prod, http.StatusOK)
