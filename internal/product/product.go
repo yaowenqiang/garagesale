@@ -33,7 +33,7 @@ func Retrieve(db *sqlx.DB, id string) (*Product, error) {
         return nil, ErrInvalidID
     }
 
-    const q = "SELECT name, cost, quantity, date_updated, date_created  FROM products  where product_id = $1";
+    const q = "SELECT product_id, name, cost, quantity, date_updated, date_created  FROM products  where product_id = $1";
 
     if err := db.Get(&p, q, id); err != nil {
         if err == sql.ErrNoRows {
