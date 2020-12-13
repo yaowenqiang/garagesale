@@ -16,7 +16,7 @@ var (
 func List(db *sqlx.DB) ([]Product, error) {
     //list products
 
-    const q = "SELECT name, cost, quantity, date_updated, date_created  FROM products";
+    const q = "SELECT product_id, name, cost, quantity, date_updated, date_created  FROM products";
     list := []Product{}
     if err := db.Select(&list, q); err != nil {
         return nil, err
