@@ -3,6 +3,7 @@ package product
 import (
     "testing"
     "time"
+    "context"
     "github.com/yaowenqiang/garagesale/internal/product"
     "github.com/yaowenqiang/garagesale/internal/schema"
     "github.com/yaowenqiang/garagesale/internal/platform/database/databasetest"
@@ -11,8 +12,11 @@ import (
 
 
 func TestProducts(t *testing.T) {
+
     db, cleanup := databasetest.Setup(t)
     defer cleanup()
+
+    ctx :- context.Background()
     np := product.NewProduct{
         Name: "new Comic book",
         Cost: 10,
@@ -20,7 +24,7 @@ func TestProducts(t *testing.T) {
     }
 
     now := time.Date(2020, time.January, 1, 0,0,0,0,time.UTC)
-    p0, err := product.Create(db,np , now)
+    p0, err := product.Create(ctx, db,np , now)
     if err != nil {
         t.Fatalf("could not create product %v", err)
     }
@@ -42,11 +46,12 @@ func TestProductList(t *testing.T) {
     db, cleanup := databasetest.Setup(t)
     defer cleanup()
 
+    ctx :- context.Background()
     if err := schema.Seed(db); err != nil {
         t.Fatal(err)
     }
 
-    ps, err := product.List(db)
+    ps, err := product.List(ctx, db)
 
     if err != nil {
         t.Fatalf("Listing products: %s", err)
