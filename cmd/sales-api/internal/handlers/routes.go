@@ -16,6 +16,11 @@ func API(logger *log.Logger, db *sqlx.DB) *web.App {
         Log: logger,
     }
 
+    c := Check {
+        DB: db,
+    }
+	app.Handle(http.MethodGet, "/v1/health", c.Health)
+
     app.Handle(http.MethodGet, "/v1/products", p.List)
     app.Handle(http.MethodGet, "/v1/products/{id}", p.Retrieve)
     app.Handle(http.MethodPost, "/v1/products", p.Create)
@@ -24,6 +29,7 @@ func API(logger *log.Logger, db *sqlx.DB) *web.App {
 
 	app.Handle(http.MethodPost, "/v1/products/{id}/sales", p.AddSale)
 	app.Handle(http.MethodGet, "/v1/products/{id}/sales", p.ListSales)
+
 
     return app
 }
