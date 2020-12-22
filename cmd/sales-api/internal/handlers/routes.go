@@ -5,12 +5,13 @@ import (
     "net/http"
 	"github.com/jmoiron/sqlx"
     "github.com/yaowenqiang/garagesale/internal/platform/web"
+    "github.com/yaowenqiang/garagesale/internal/mid"
 )
 
 //handle all api routes
 
 func API(logger *log.Logger, db *sqlx.DB) *web.App {
-    app := web.NewApp(logger)
+    app := web.NewApp(logger, mid.Errors(logger))
     p := Product {
         Db: db,
         Log: logger,

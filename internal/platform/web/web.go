@@ -11,17 +11,19 @@ import (
 type App struct {
     mux *chi.Mux
     Log *log.Logger
+    mw []Middleware
 }
 
 
-type handler func(http.ResponseWriter, *http.Request) error
+type Handler func(http.ResponseWriter, *http.Request) error
 
 //new app
 
-func NewApp(logger *log.Logger) *App {
+func NewApp(logger *log.Logger, mw ...Middleware) *App {
     return &App{
         mux: chi.NewRouter(),
         Log: logger,
+        mw: mw,
     }
 }
 
@@ -30,13 +32,11 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func (a *App) Handle(method, pattern string, h handler) {
+func (a *App) Handle(method, pattern string, h Handler) {
+    h = wrapMiddleware(a.mw, h)
     fn := func(w http.ResponseWriter, r *http.Request) {
         if err := h(w, r); err != nil {
-            a.Log.Printf("ERROR: %v", err)
-            if err := RespondError(w, err); err != nil {
-                a.Log.Printf("ERROR : %v", err)
-            }
+            a.Log.Printf("ERROR: Unhandled error %v", err)
         }
     }
     a.mux.MethodFunc(method, pattern, fn)
