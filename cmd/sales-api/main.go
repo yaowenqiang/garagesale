@@ -1,6 +1,7 @@
 package main
 import (
     "net/http"
+    _ "net/http/pprof" // register /debug/pprof handlers
     "fmt"
     "log"
     "time"
@@ -31,6 +32,7 @@ func run() error {
     var cfg struct {
 		Web struct {
 			Address         string        `conf:"default:localhost:8000"`
+			Debug           string        `conf:"default:localhost:6060"`
 			ReadTimeout     time.Duration `conf:"default:5s"`
 			WriteTimeout    time.Duration `conf:"default:5s"`
 			ShutdownTimeout time.Duration `conf:"default:5s"`
@@ -78,6 +80,15 @@ func run() error {
     }
 
     defer db.Close()
+
+    //debug service
+    go func() {
+        log.Printf("main: Debug service listening on %s", cfg.Web.Debug)
+        err := http.ListenAndServe(cfg.Web.Debug, http.DefaultServeMux)
+        if err != nil {
+            log.Printf("main: Debug Service ended %s", err)
+        }
+    }()
 
 
     api := http.Server{
