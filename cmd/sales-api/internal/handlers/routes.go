@@ -11,7 +11,7 @@ import (
 //handle all api routes
 
 func API(logger *log.Logger, db *sqlx.DB) *web.App {
-    app := web.NewApp(logger, mid.Errors(logger))
+    app := web.NewApp(logger,mid.Errors(logger), mid.Metrics())
     p := Product {
         Db: db,
         Log: logger,

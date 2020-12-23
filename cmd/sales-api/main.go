@@ -2,6 +2,7 @@ package main
 import (
     "net/http"
     _ "net/http/pprof" // register /debug/pprof handlers
+    _ "expvar" //register  /debug/varshandler
     "fmt"
     "log"
     "time"

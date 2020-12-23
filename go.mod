@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/GuiaBolso/darwin v0.0.0-20191218124601-fd6d2aa3d244
+	github.com/divan/expvarmon v0.0.0-20190204123027-8bf297f0fa5d // indirect
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0
