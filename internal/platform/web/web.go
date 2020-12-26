@@ -17,7 +17,7 @@ type App struct {
 }
 
 
-type Handler func(http.ResponseWriter, *http.Request) error
+type Handler func(context.Context, http.ResponseWriter, *http.Request) error
 
 
 type ctxKey int
@@ -51,11 +51,9 @@ func (a *App) Handle(method, pattern string, h Handler) {
         v := Values {
             Start: time.Now(),
         }
-        ctx := r.Context()
-        ctx = context.WithValue(ctx, KeyValues, &v)
-        r = r.WithContext(ctx)
+        ctx := context.WithValue(r.Context(), KeyValues, &v)
 
-        if err := h(w, r); err != nil {
+        if err := h(ctx, w, r); err != nil {
             a.Log.Printf("ERROR: Unhandled error %v", err)
         }
     }
