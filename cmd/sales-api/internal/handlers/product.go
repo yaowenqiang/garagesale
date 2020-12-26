@@ -21,7 +21,8 @@ type Product struct {
 }
 
 func (p *Product) List(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-
+    //panic("Oh no")
+    //_ = ctx.(error)
     ctx , span := trace.StartSpan(ctx, "handles ProductList")
     defer span.End()
     p.Log.Println("SALES")

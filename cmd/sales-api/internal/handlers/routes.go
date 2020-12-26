@@ -12,7 +12,7 @@ import (
 //handle all api routes
 
 func API(logger *log.Logger, db *sqlx.DB, authenticator *auth.Authenticator) *web.App {
-    app := web.NewApp(logger,mid.Logger(logger), mid.Errors(logger), mid.Metrics())
+    app := web.NewApp(logger,mid.Logger(logger), mid.Errors(logger), mid.Metrics(), mid.Panics(logger))
     p := Product {
         Db: db,
         Log: logger,
