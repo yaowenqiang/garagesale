@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 	"net/http"
+    "github.com/pkg/errors"
 
 	"github.com/yaowenqiang/garagesale/internal/platform/web"
 )
@@ -15,16 +16,20 @@ func Logger(log *log.Logger) web.Middleware {
 	f := func(before web.Handler) web.Handler {
 
 		h := func(w http.ResponseWriter, r *http.Request) error {
-            now := time.Now()
+            v, ok := r.Context().Value(web.KeyValues).(*web.Values)
+            if !ok {
+                return errors.New("web values missing from context")
+            }
 
 
 			// Run the handler chain and catch any propagated error.
             err := before(w, r)
             log.Printf(
-                "%s %s %v",
+                "%d %s %s (%v)",
+                v.StatusCode,
                 r.Method,
                 r.URL.Path,
-                time.Since(now),
+                time.Since(v.Start),
             )
 
                 return err
