@@ -6,6 +6,7 @@ import (
     "context"
     "time"
     "net/http"
+	"go.opencensus.io/trace"
 )
 
 
@@ -52,14 +53,19 @@ func (a *App) Handle(method, pattern string, h Handler, mw ...Middleware) {
 	h = wrapMiddleware(a.mw, h)
 
     fn := func(w http.ResponseWriter, r *http.Request) {
+
+        ctx , span := trace.StartSpan(r.Context(), "internal platform web")
+        defer span.End()
+
         v := Values {
             Start: time.Now(),
         }
-        ctx := context.WithValue(r.Context(), KeyValues, &v)
+        ctx = context.WithValue(ctx, KeyValues, &v)
 
         if err := h(ctx, w, r); err != nil {
             a.Log.Printf("ERROR: Unhandled error %v", err)
         }
+
     }
     a.mux.MethodFunc(method, pattern, fn)
 }

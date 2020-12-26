@@ -12,6 +12,7 @@ import (
     "github.com/yaowenqiang/garagesale/internal/product"
     "github.com/yaowenqiang/garagesale/internal/platform/web"
 	"github.com/yaowenqiang/garagesale/internal/platform/auth"
+	"go.opencensus.io/trace"
 )
 
 type Product struct {
@@ -20,6 +21,9 @@ type Product struct {
 }
 
 func (p *Product) List(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+    ctx , span := trace.StartSpan(ctx, "handles ProductList")
+    defer span.End()
     p.Log.Println("SALES")
     list, err := product.List(ctx, p.Db)
     if err != nil {

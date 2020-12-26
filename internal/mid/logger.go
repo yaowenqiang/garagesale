@@ -8,6 +8,7 @@ import (
     "github.com/pkg/errors"
 
 	"github.com/yaowenqiang/garagesale/internal/platform/web"
+	"go.opencensus.io/trace"
 )
 
 // Logger will log a line for every request
@@ -17,6 +18,8 @@ func Logger(log *log.Logger) web.Middleware {
 	f := func(before web.Handler) web.Handler {
 
 		h := func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+            ctx , span := trace.StartSpan(ctx, "internal mid logger")
+            defer span.End()
             v, ok := ctx.Value(web.KeyValues).(*web.Values)
             if !ok {
                 return errors.New("web values missing from context")
