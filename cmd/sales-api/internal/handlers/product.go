@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
     "github.com/yaowenqiang/garagesale/internal/product"
     "github.com/yaowenqiang/garagesale/internal/platform/web"
+	"github.com/yaowenqiang/garagesale/internal/platform/auth"
 )
 
 type Product struct {
@@ -51,12 +52,16 @@ func (p *Product) Retrieve(ctx context.Context, w http.ResponseWriter, r *http.R
 }
 
 func (p *Product) Create(ctx context.Context, w http.ResponseWriter, r *http.Request)  error {
+    claims, ok := ctx.Value(auth.Key).(auth.Claims)
+    if !ok {
+        return errors.New("auth claims not in context")
+    }
     var np product.NewProduct
     if err := web.Decode(r, &np); err != nil {
         return err
     }
 
-    prod, err := product.Create(ctx, p.Db, np, time.Now())
+    prod, err := product.Create(ctx, p.Db, claims, np, time.Now())
     if err != nil {
         return err
     }
@@ -97,6 +102,11 @@ func (p *Product) ListSales(ctx context.Context, w http.ResponseWriter, r *http.
 // Update decodes the body of a request to update an existing product. The ID
 // of the product is part of the request URL.
 func (p *Product) Update(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+
+    claims, ok := ctx.Value(auth.Key).(auth.Claims)
+    if !ok {
+        return errors.New("auth claims not in context")
+    }
 	id := chi.URLParam(r, "id")
 
 	var update product.UpdateProduct
@@ -104,12 +114,14 @@ func (p *Product) Update(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return errors.Wrap(err, "decoding product update")
 	}
 
-	if err := product.Update(ctx, p.Db, id, update, time.Now()); err != nil {
+	if err := product.Update(ctx, p.Db, claims, id, update, time.Now()); err != nil {
 		switch err {
 		case product.ErrNotFound:
 			return web.NewRequestError(err, http.StatusNotFound)
 		case product.ErrInvalidID:
 			return web.NewRequestError(err, http.StatusBadRequest)
+		case product.ErrForbidden:
+			return web.NewRequestError(err, http.StatusForbidden)
 		default:
 			return errors.Wrapf(err, "updating product %q", id)
 		}

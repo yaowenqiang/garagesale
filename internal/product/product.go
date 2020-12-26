@@ -6,11 +6,15 @@ import (
 	"github.com/pkg/errors"
     "time"
     "context"
+	"github.com/yaowenqiang/garagesale/internal/platform/auth"
 )
 
 var (
     ErrNotFound  = errors.New("product not found")
     ErrInvalidID = errors.New("id provided was not a valid UUID")
+	// ErrForbidden occurs when a user tries to do something that is forbidden to
+	// them according to our access control policies.
+	ErrForbidden = errors.New("Attempted action is not allowed")
 )
 
 
@@ -64,20 +68,21 @@ func Retrieve(ctx context.Context, db *sqlx.DB, id string) (*Product, error) {
 
 }
 
-func Create(ctx context.Context, db *sqlx.DB, np NewProduct, now time.Time) (*Product, error) {
+func Create(ctx context.Context, db *sqlx.DB, user auth.Claims, np NewProduct, now time.Time) (*Product, error) {
     p := Product {
         ID:  uuid.New().String(),
         Name: np.Name,
         Cost: np.Cost,
+        UserID: user.Subject,
         Quantity: np.Quantity,
         DateCreated: now.UTC(),
         DateUpdated: now.UTC(),
     }
 
 
-    const q = "INSERT into products (product_id, name, cost, quantity, date_created, date_updated) VALUES ($1,$2,$3,$4,$5,$6) ";
+    const q = "INSERT into products (product_id, name, cost, quantity, user_id, date_created, date_updated) VALUES ($1,$2,$3,$4,$5,$6,$7) ";
 
-    if _, err := db.ExecContext(ctx, q, p.ID, p.Name, p.Cost, p.Quantity, p.DateCreated, p.DateUpdated); err != nil {
+    if _, err := db.ExecContext(ctx, q, p.ID, p.Name, p.Cost, p.Quantity, p.UserID, p.DateCreated, p.DateUpdated); err != nil {
         return nil, errors.Wrapf(err, "insert product %v", np)
     }
 
@@ -86,12 +91,18 @@ func Create(ctx context.Context, db *sqlx.DB, np NewProduct, now time.Time) (*Pr
 
 // Update modifies data about a Product. It will error if the specified ID is
 // invalid or does not reference an existing Product.
-func Update(ctx context.Context, db *sqlx.DB, id string, update UpdateProduct, now time.Time) error {
+func Update(ctx context.Context, db *sqlx.DB, user auth.Claims, id string, update UpdateProduct, now time.Time) error {
 	p, err := Retrieve(ctx, db, id)
 	if err != nil {
 		return err
 	}
 
+	// If you do not have the admin role ...
+	// and you are not the owner of this product ...
+	// then get outta here!
+	if !user.HasRole(auth.RoleAdmin) && p.UserID != user.Subject {
+		return ErrForbidden
+	}
 	if update.Name != nil {
 		p.Name = *update.Name
 	}
