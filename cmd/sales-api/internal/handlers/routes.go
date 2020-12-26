@@ -2,6 +2,7 @@ package handlers
 
 import (
     "log"
+    "os"
     "net/http"
 	"github.com/jmoiron/sqlx"
     "github.com/yaowenqiang/garagesale/internal/platform/web"
@@ -11,8 +12,8 @@ import (
 
 //handle all api routes
 
-func API(logger *log.Logger, db *sqlx.DB, authenticator *auth.Authenticator) *web.App {
-    app := web.NewApp(logger,mid.Logger(logger), mid.Errors(logger), mid.Metrics(), mid.Panics(logger))
+func API(shutdown chan os.Signal, logger *log.Logger, db *sqlx.DB, authenticator *auth.Authenticator) *web.App {
+    app := web.NewApp(shutdown, logger,mid.Logger(logger), mid.Errors(logger), mid.Metrics(), mid.Panics(logger))
     p := Product {
         Db: db,
         Log: logger,

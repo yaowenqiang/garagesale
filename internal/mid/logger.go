@@ -5,7 +5,6 @@ import (
 	"time"
 	"context"
 	"net/http"
-    "github.com/pkg/errors"
 
 	"github.com/yaowenqiang/garagesale/internal/platform/web"
 	"go.opencensus.io/trace"
@@ -23,7 +22,8 @@ func Logger(log *log.Logger) web.Middleware {
             defer span.End()
             v, ok := ctx.Value(web.KeyValues).(*web.Values)
             if !ok {
-                return errors.New("web values missing from context")
+                //return errors.New("web values missing from context")
+                return web.NewShutdownError("web values missing from context")
             }
 
 

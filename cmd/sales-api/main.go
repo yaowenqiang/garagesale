@@ -7,11 +7,11 @@ import (
 	"io/ioutil"
     "fmt"
     "log"
+    "syscall"
     "time"
     "context"
     "os"
     "os/signal"
-    "syscall"
     "github.com/pkg/errors"
 	"contrib.go.opencensus.io/exporter/zipkin"
     "github.com/yaowenqiang/garagesale/internal/platform/conf"
@@ -138,9 +138,12 @@ func run() error {
     }()
 
 
+    shutdown := make(chan os.Signal, 1)
+    signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
     api := http.Server{
         Addr: cfg.Web.Address,
-        Handler: handlers.API(log,db, authenticator),
+        Handler: handlers.API(shutdown, log,db, authenticator),
         ReadTimeout: cfg.Web.ReadTimeout,
         WriteTimeout: cfg.Web.WriteTimeout,
     }
@@ -151,14 +154,12 @@ func run() error {
         serverErrors <- api.ListenAndServe()
     }()
 
-    shutdown := make(chan os.Signal, 1)
-    signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
     select {
     case err := <- serverErrors:
         return errors.Wrap(err, "Listening and Serving")
-    case <-shutdown:
-        log.Println("main: Start shutdown")
+    case sig := <-shutdown:
+        log.Println("main: Start shutdown", sig)
 
         ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)
         defer cancel()
@@ -171,6 +172,10 @@ func run() error {
 
         if err != nil {
             return errors.Wrap(err, "graceful shutdown")
+        }
+
+        if sig == syscall.SIGSTOP {
+            return errors.New("integrity error detected, asking for self shutdown")
         }
     }
     return nil

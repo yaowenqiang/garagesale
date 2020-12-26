@@ -47,7 +47,8 @@ func Authenticate(authenticator *auth.Authenticator) web.Middleware {
 
 
 			// Add claims to the context so they can be retrieved later.
-			ctx = context.WithValue(ctx, auth.Key, claims)
+			//ctx = context.WithValue(ctx, auth.Key, claims)
+            _ = claims
 
 			return after(ctx, w, r)
 		}

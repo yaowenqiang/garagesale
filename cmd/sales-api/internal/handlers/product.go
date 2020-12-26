@@ -59,7 +59,8 @@ func (p *Product) Retrieve(ctx context.Context, w http.ResponseWriter, r *http.R
 func (p *Product) Create(ctx context.Context, w http.ResponseWriter, r *http.Request)  error {
     claims, ok := ctx.Value(auth.Key).(auth.Claims)
     if !ok {
-        return errors.New("auth claims not in context")
+        //return errors.New("auth claims not in context")
+        return web.NewShutdownError("auth claims not in context")
     }
     var np product.NewProduct
     if err := web.Decode(r, &np); err != nil {
