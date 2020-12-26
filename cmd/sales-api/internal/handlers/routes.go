@@ -29,16 +29,17 @@ func API(logger *log.Logger, db *sqlx.DB, authenticator *auth.Authenticator) *we
 
 	app.Handle(http.MethodGet, "/v1/users/token", u.Token)
 
-	app.Handle(http.MethodGet, "/v1/health", c.Health)
+	app.Handle(http.MethodGet, "/v1/health", c.Health, mid.Authenticate(authenticator))
 
-    app.Handle(http.MethodGet, "/v1/products", p.List)
-    app.Handle(http.MethodGet, "/v1/products/{id}", p.Retrieve)
-    app.Handle(http.MethodPost, "/v1/products", p.Create)
-	app.Handle(http.MethodPut, "/v1/products/{id}", p.Update)
-	app.Handle(http.MethodDelete, "/v1/products/{id}", p.Delete)
+    app.Handle(http.MethodGet, "/v1/products", p.List, mid.Authenticate(authenticator))
 
-	app.Handle(http.MethodPost, "/v1/products/{id}/sales", p.AddSale)
-	app.Handle(http.MethodGet, "/v1/products/{id}/sales", p.ListSales)
+    app.Handle(http.MethodGet, "/v1/products/{id}", p.Retrieve, mid.Authenticate(authenticator))
+    app.Handle(http.MethodPost, "/v1/products", p.Create, mid.Authenticate(authenticator))
+	app.Handle(http.MethodPut, "/v1/products/{id}", p.Update, mid.Authenticate(authenticator))
+	app.Handle(http.MethodDelete, "/v1/products/{id}", p.Delete, mid.Authenticate(authenticator))
+
+	app.Handle(http.MethodPost, "/v1/products/{id}/sales", p.AddSale, mid.Authenticate(authenticator))
+	app.Handle(http.MethodGet, "/v1/products/{id}/sales", p.ListSales, mid.Authenticate(authenticator))
 
 
     return app
